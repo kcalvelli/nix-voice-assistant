@@ -60,7 +60,7 @@ python3Packages.buildPythonApplication rec {
     description = "Voice assistant for Home Assistant using the ESPHome protocol";
     homepage = "https://github.com/OHF-Voice/linux-voice-assistant";
     license = lib.licenses.asl20;
-    platforms = [ "x86_64-linux" ];
+    platforms = [ "x86_64-linux" "aarch64-linux" ];
     mainProgram = "linux-voice-assistant";
   };
 }
