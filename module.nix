@@ -106,6 +106,8 @@ in
           ++ [ "--wake-model" cfg.wakeModel ]
           ++ lib.concatMap (dir: [ "--wake-word-dir" "'${toString dir}'" ]) cfg.wakeWordDirs
           ++ [
+            "--download-dir" "'/var/lib/linux-voice-assistant/downloads'"
+            "--preferences-file" "'/var/lib/linux-voice-assistant/preferences.json'"
             "--wakeup-sound" "'${dataDir}/sounds/wake_word_triggered.flac'"
             "--timer-finished-sound" "'${dataDir}/sounds/timer_finished.flac'"
             "--processing-sound" "'${dataDir}/sounds/processing.wav'"
@@ -131,6 +133,12 @@ in
         DevicePolicy = "auto";
       };
     };
+
+    # Writable state directory for downloads and preferences
+    systemd.tmpfiles.rules = [
+      "d /var/lib/linux-voice-assistant 0755 ${cfg.user} users -"
+      "d /var/lib/linux-voice-assistant/downloads 0755 ${cfg.user} users -"
+    ];
 
     networking.firewall.allowedTCPPorts = lib.mkIf cfg.openFirewall [ cfg.port ];
   };
