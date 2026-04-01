@@ -91,32 +91,36 @@ in
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
 
-      serviceConfig = {
-        ExecStart = let
-          # systemd ExecStart uses %20-style or backslash escaping for spaces
-          esc = s: builtins.replaceStrings [ " " ] [ ''\x20'' ] s;
-          args = [
-            "${pkg}/bin/linux-voice-assistant"
-          ]
-          ++ lib.optionals (cfg.name != null) [ "--name" (esc cfg.name) ]
+      # Use script instead of ExecStart so we can resolve UID at runtime
+      # (NixOS config may have uid=null when auto-assigned)
+      script = let
+        args = lib.concatStringsSep " " (
+          [ "'${pkg}/bin/linux-voice-assistant'" ]
+          ++ lib.optionals (cfg.name != null) [ "--name" "'${cfg.name}'" ]
           ++ lib.optionals (cfg.host != null) [ "--host" cfg.host ]
           ++ [ "--port" (toString cfg.port) ]
           ++ lib.optionals (cfg.networkInterface != null) [ "--network-interface" cfg.networkInterface ]
-          ++ lib.optionals (cfg.audioInputDevice != null) [ "--audio-input-device" (esc cfg.audioInputDevice) ]
-          ++ lib.optionals (cfg.audioOutputDevice != null) [ "--audio-output-device" (esc cfg.audioOutputDevice) ]
+          ++ lib.optionals (cfg.audioInputDevice != null) [ "--audio-input-device" "'${cfg.audioInputDevice}'" ]
+          ++ lib.optionals (cfg.audioOutputDevice != null) [ "--audio-output-device" "'${cfg.audioOutputDevice}'" ]
           ++ [ "--wake-model" cfg.wakeModel ]
-          ++ lib.concatMap (dir: [ "--wake-word-dir" (toString dir) ]) cfg.wakeWordDirs
+          ++ lib.concatMap (dir: [ "--wake-word-dir" "'${toString dir}'" ]) cfg.wakeWordDirs
           ++ [
-            "--wakeup-sound" "${dataDir}/sounds/wake_word_triggered.flac"
-            "--timer-finished-sound" "${dataDir}/sounds/timer_finished.flac"
-            "--processing-sound" "${dataDir}/sounds/processing.wav"
-            "--mute-sound" "${dataDir}/sounds/mute_switch_on.flac"
-            "--unmute-sound" "${dataDir}/sounds/mute_switch_off.flac"
+            "--wakeup-sound" "'${dataDir}/sounds/wake_word_triggered.flac'"
+            "--timer-finished-sound" "'${dataDir}/sounds/timer_finished.flac'"
+            "--processing-sound" "'${dataDir}/sounds/processing.wav'"
+            "--mute-sound" "'${dataDir}/sounds/mute_switch_on.flac'"
+            "--unmute-sound" "'${dataDir}/sounds/mute_switch_off.flac'"
           ]
           ++ lib.optional cfg.debug "--debug"
-          ++ cfg.extraArgs;
-        in lib.concatStringsSep " " args;
+          ++ cfg.extraArgs
+        );
+      in ''
+        export XDG_RUNTIME_DIR="/run/user/$(id -u)"
+        export PULSE_SERVER="$XDG_RUNTIME_DIR/pulse/native"
+        exec ${args}
+      '';
 
+      serviceConfig = {
         User = cfg.user;
         Restart = "on-failure";
         RestartSec = 5;
@@ -124,17 +128,6 @@ in
         # Audio device access
         PrivateDevices = false;
         DevicePolicy = "auto";
-      };
-
-      environment = let
-        uid = toString (
-          if config.users.users ? ${cfg.user}
-          then config.users.users.${cfg.user}.uid
-          else 1000
-        );
-      in {
-        XDG_RUNTIME_DIR = "/run/user/${uid}";
-        PULSE_SERVER = "/run/user/${uid}/pulse/native";
       };
     };
 
