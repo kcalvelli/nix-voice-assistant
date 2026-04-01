@@ -90,6 +90,7 @@ in
       after = [ "network-online.target" "pipewire.service" ];
       wants = [ "network-online.target" ];
       wantedBy = [ "multi-user.target" ];
+      path = [ pkgs.iproute2 pkgs.which ];
 
       # Use script instead of ExecStart so we can resolve UID at runtime
       # (NixOS config may have uid=null when auto-assigned)
