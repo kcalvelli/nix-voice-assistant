@@ -104,6 +104,8 @@ in
           ++ lib.optionals (cfg.audioInputDevice != null) [ "--audio-input-device" "'${cfg.audioInputDevice}'" ]
           ++ lib.optionals (cfg.audioOutputDevice != null) [ "--audio-output-device" "'${cfg.audioOutputDevice}'" ]
           ++ [ "--wake-model" cfg.wakeModel ]
+          # Always include the bundled wakewords (contains stop model, default models)
+          ++ [ "--wake-word-dir" "'${dataDir}/wakewords'" ]
           ++ lib.concatMap (dir: [ "--wake-word-dir" "'${toString dir}'" ]) cfg.wakeWordDirs
           ++ [
             "--download-dir" "'/var/lib/linux-voice-assistant/downloads'"
