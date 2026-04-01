@@ -93,27 +93,28 @@ in
 
       serviceConfig = {
         ExecStart = let
-          args = lib.concatStringsSep " " (
-            [ "${pkg}/bin/linux-voice-assistant" ]
-            ++ lib.optional (cfg.name != null) "--name '${cfg.name}'"
-            ++ lib.optional (cfg.host != null) "--host ${cfg.host}"
-            ++ [ "--port ${toString cfg.port}" ]
-            ++ lib.optional (cfg.networkInterface != null) "--network-interface ${cfg.networkInterface}"
-            ++ lib.optional (cfg.audioInputDevice != null) "--audio-input-device '${cfg.audioInputDevice}'"
-            ++ lib.optional (cfg.audioOutputDevice != null) "--audio-output-device '${cfg.audioOutputDevice}'"
-            ++ [ "--wake-model ${cfg.wakeModel}" ]
-            ++ map (dir: "--wake-word-dir ${dir}") cfg.wakeWordDirs
-            ++ [
-              "--wakeup-sound ${dataDir}/sounds/wake_word_triggered.flac"
-              "--timer-finished-sound ${dataDir}/sounds/timer_finished.flac"
-              "--processing-sound ${dataDir}/sounds/processing.wav"
-              "--mute-sound ${dataDir}/sounds/mute_switch_on.flac"
-              "--unmute-sound ${dataDir}/sounds/mute_switch_off.flac"
-            ]
-            ++ lib.optional cfg.debug "--debug"
-            ++ cfg.extraArgs
-          );
-        in args;
+          esc = lib.escapeSystemdExecArg;
+          args = [
+            "${pkg}/bin/linux-voice-assistant"
+          ]
+          ++ lib.optionals (cfg.name != null) [ "--name" (esc cfg.name) ]
+          ++ lib.optionals (cfg.host != null) [ "--host" cfg.host ]
+          ++ [ "--port" (toString cfg.port) ]
+          ++ lib.optionals (cfg.networkInterface != null) [ "--network-interface" cfg.networkInterface ]
+          ++ lib.optionals (cfg.audioInputDevice != null) [ "--audio-input-device" (esc cfg.audioInputDevice) ]
+          ++ lib.optionals (cfg.audioOutputDevice != null) [ "--audio-output-device" (esc cfg.audioOutputDevice) ]
+          ++ [ "--wake-model" cfg.wakeModel ]
+          ++ lib.concatMap (dir: [ "--wake-word-dir" (toString dir) ]) cfg.wakeWordDirs
+          ++ [
+            "--wakeup-sound" "${dataDir}/sounds/wake_word_triggered.flac"
+            "--timer-finished-sound" "${dataDir}/sounds/timer_finished.flac"
+            "--processing-sound" "${dataDir}/sounds/processing.wav"
+            "--mute-sound" "${dataDir}/sounds/mute_switch_on.flac"
+            "--unmute-sound" "${dataDir}/sounds/mute_switch_off.flac"
+          ]
+          ++ lib.optional cfg.debug "--debug"
+          ++ cfg.extraArgs;
+        in lib.concatStringsSep " " args;
 
         User = cfg.user;
         Restart = "on-failure";
