@@ -93,7 +93,8 @@ in
 
       serviceConfig = {
         ExecStart = let
-          esc = lib.escapeSystemdExecArg;
+          # systemd ExecStart uses %20-style or backslash escaping for spaces
+          esc = s: builtins.replaceStrings [ " " ] [ ''\x20'' ] s;
           args = [
             "${pkg}/bin/linux-voice-assistant"
           ]
